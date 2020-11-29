@@ -5,14 +5,14 @@ title:  "Solving reverse engineering challenges in a CTF - r2 & angr 101"
 
 ## Intro ##
 
-The idea is, you read the bullet point text and then you replicate the associated figure.
-Before reading the next point, you should reasoning on what you got, and what should be the next step to follow.
-Every bullet point text will start with some previous reasoning, so you can that correlate, then it will follow what to do next.
+The idea is that you read the bullet point text and then you replicate the associated figure.
+Before reading the next point, you should reason on what you have, and what should be the next steps to follow.
+Each point starts with some previous reasoning.
 
 
 #### Requirements ####
- - some basic knowledge about binaries, and assembly of course
- - [radare2](https://github.com/radareorg) and [angr](https://angr.io/) present in our test environment
+ - some basic knowledge about binary files, and assembly
+ - [radare2](https://github.com/radareorg) and [angr](https://angr.io/) are present in our test environment
 
 <p align="center">
   <img width="50%" height="50%" src="/files/solving-rev-1/ctf_rev_cheatsheet.png">
@@ -22,54 +22,54 @@ Every bullet point text will start with some previous reasoning, so you can that
 
 ## Start ##
 
-We have the following binary [angrmanagement](/files/solving-rev-1/angrmanagement)
+We have the following binary file: [angrmanagement](/files/solving-rev-1/angrmanagement)
 
-We immagine the binary is running remotely and so we can't do patching/debugging tricks to get the flag.
+We immagine that the binary file is running remotely and so we can't do patching/debugging tricks to get the flag.
 
 
- - Start by doing some basic static analysis with r2, you find some cheatsheet [here](https://gist.github.com/tin-z/b80498d4ded2d55a74b0372b10653910)
+ - We start with some basic static analysis by using radare2 (r2). You can find some r2 cheatsheet [here](https://gist.github.com/tin-z/b80498d4ded2d55a74b0372b10653910)
 <p align="center">
   <img src="/files/solving-rev-1/t1.png">
 </p>
 
 <br />
 
- - Ok nothing strange here, print the imported function and printable strings
+ - Nothing strange till here. We print the imported functions and printable strings
 <p align="center">
   <img src="/files/solving-rev-1/t2.png">
 </p>
 
 <br />
 
- - As we look, there's nothing suspicious, it sems a classical reverse challenge of a ctf, so before running it in docker or in a clean VM, check the disassembly of main
+ - As we can see, there's nothing suspicious here, it sems a classical reverse challenge of a ctf. Before we start executing the binary on docker or on a clean VM, we do some checking of the main function
 <p align="center">
   <img src="/files/solving-rev-1/t3.png">
 </p>
 
 <br />
 
- - [endbr64](https://stackoverflow.com/questions/56905811/what-does-endbr64-instruction-actually-do) is a typical instruction breaking binary analysis tools, such as angr, saying so get the [control flow graph](https://www2.cs.arizona.edu/~collberg/Teaching/453/2009/Handouts/Handout-15.pdf) (CFG), it's more usefull in this case.
+ - [endbr64](https://stackoverflow.com/questions/56905811/what-does-endbr64-instruction-actually-do) is a typical instruction breaking some binary analysis tools, such as angr. After that, we get the [control flow graph](https://www2.cs.arizona.edu/~collberg/Teaching/453/2009/Handouts/Handout-15.pdf) (CFG), we summarize the new concepts here:
    - The CFG is composed of basic blocks, more precisally, we refer to the path that links together them
-   - Basic block is a blob of assembly code, followed by a Change of Flow Instruction (COFI), such as jmp, call, and ret.
-   - The Control flow executed (CFE) is a subset of the CFG, mostly it refers to a control flow we captured from executing the program
+   - Basic block is a blob of assembly instructions, that are followed by a Change of Flow Instruction (COFI), such as jmp, call, and ret.
+   - The Control flow executed (CFE) is a subset of the CFG, in the sense, it refers to a control flow we captured by executing the program
 
 <br />
 
- - Type `VV` to go on graph mode, and you should see the following screen (to move on it, use the arrow keys or 'h','j','k','l' if you're familiar with vim)
+ - We type `VV` for going in a graph mode, then we should see the screen following below (to move on the graph, use the arrow keys or 'h','j','k','l' if you're familiar with vim)
 <p align="center">
   <img src="/files/solving-rev-1/t4.png">
 </p>
 
 <br />
  
- - The program will ask to insert some password, nothing strange till here, we go further
+ - By looking at the strings we note that the program is asking us to insert some password. Nothing strange till here, we go further
 <p align="center">
   <img src="/files/solving-rev-1/t5.png">
 </p>
 
 <br />
- 
- - The function names are self-explanatory because of debug symbols, so we can directly say that after inserting the input, a check of length will happen, and if correct, then the other checks.
+
+ - The name labels of the functions are self-explanatory because of the debug symbols. We can already say that after we insert the input, then the program will do a comparison of the length of the string, and if successful, then the other checks.
    Now run it !
 <p align="center">
   <img src="/files/solving-rev-1/t6.png">
@@ -77,17 +77,17 @@ We immagine the binary is running remotely and so we can't do patching/debugging
 
 <br />
 
- - Back to graph mode, now we look the assembly present in 'sym.check_len' function.
-   We can directly jump to a function that is called in our graph mode, by pressing the keyword commented just after the operand, that in my case is `od` .
-   For more command that you can invoke from this mode, use the help menu by pressing `?` , and the `q` to exit.
+ - We go back to graph mode, we look the assembly in 'sym.check_len' function.
+   We can directly jump to a function which is called in our graph mode, by pressing the keyword commented just after the operand, that in my case is `od` .
+   For more commands that can be invoked in graph mode, we can use the help menu by pressing `?` , and the `q` to exit.
 <p align="center">
   <img src="/files/solving-rev-1/t7.png">
 </p>
 
 <br />
 
- - The instruction `cmp rax, 0x20` will change the status of register eflags, then `sete al` will set to 1 register `al` if the zero flag is 0.
-   So now we know the password must be 0x20 byte long, to get back to where we was in graph mode, press `x` and then the enter key
+ - The instruction `cmp rax, 0x20` changes the status of register eflags, then `sete al` will set to 1 register `al` if the zero flag is 0.
+   So now we know the password must be 0x20 byte long. To go backward in graph mode, press `x` and then the enter key
 <p align="center">
   <img src="/files/solving-rev-1/t8.png">
 </p>
@@ -97,7 +97,7 @@ We immagine the binary is running remotely and so we can't do patching/debugging
 
 <br />
 
- - Basically we have 32 functions that must be true, and so their return value rax must be greater than zero, in fact, after every check function there's a `test al, al` instruction that set to 1 the zero flag if al==0, and so `jz` instruction will jump if the zero flag is set.
+ - Basically we have 32 functions that must be true, and so their return value, rax, must be greater than zero. In fact, after each check function there's a `test al, al` instruction that sets to 1 the zero flag if al==0, and so `jz` instruction will jump if the zero flag is set.
 <p align="center">
   <img src="/files/solving-rev-1/t10.png">
 </p>
@@ -107,24 +107,24 @@ We immagine the binary is running remotely and so we can't do patching/debugging
 
 <br />
 
- - The left path prints the content of the 'flag.txt' file, good now we can look the check functions, starting from `check_0`
+ - The left path prints the content of the 'flag.txt' file. We reverse the check functions, starting with `check_0` function
 <p align="center">
   <img src="/files/solving-rev-1/t12.png">
 </p>
 
 <br />
 
- - These compares shows us what value cannot be our input, and so we can resume check_0 as the following condition to be true:
+ - These comparisons show us the values that cannot be present in our input, we can summary `check_0` function as follows:
    - ` input[15] != 'h' and input[25] != '|' and input[27] != '>' `
 
-   Then we inspect check_1
+   We inspect the `check_1` function.
 <p align="center">
   <img src="/files/solving-rev-1/t13.png">
 </p>
 
 <br />
 
- - Now we can say the binary is obfuscated, we need to identify his taxonomy of obfuscation to progress more quickly, and so we look the last check function `check_31`
+ - Now, we can note the binary is obfuscated, and we identify his taxonomy of obfuscation to progress more quickly. We inspect the last check function `check_31`
 <p align="center">
   <img src="/files/solving-rev-1/t15.png">
 </p>
@@ -135,7 +135,7 @@ We immagine the binary is running remotely and so we can't do patching/debugging
 
 <br />
 
- - So it sems we have encode literals and arithmetic obfuscations, we can solve them by using dataflow analysis techniques or symbolic execution if we can control the path grow, in fact, we have the following informations:
+ - It sems we have some encode literals and arithmetic obfuscations. We can solve them by using dataflow analysis techniques or symbolic execution, whether we can control the path grow, we have the following informations, already:
    1. The length of the string must be 32 byte, and starting from the main function, it is located at rbp-0x30 address of the stack
    2. We must avoid to jump the offset 0x2347, and instead follow the path to reach 0x2359 offset
    3. The instruction `je 0x2347` is 6 byte long, and after each of them, there's a basic block that we want to match in our path
@@ -144,7 +144,7 @@ We immagine the binary is running remotely and so we can't do patching/debugging
 
 <br />
 
- - I wrote some python to automate the finding steps, because I find something tedious doing it in angr ([utils.py](/files/solving-rev-1/utils.py))
+ - We write some python to automate the 2,3,4,5 points ([utils.py](/files/solving-rev-1/utils.py)). We could do it in angr, as well. 
 
 {% highlight python %}
 import r2pipe
@@ -181,7 +181,7 @@ class r2Ctf(r2pipe.open_sync.open):
 
 <br />
 
- - Good now we write some script for angr, read the comments in code for more explains or directly the [official docs](https://docs.angr.io/core-concepts/toplevel)
+ - Good, now we write some script for angr, read the comments in the code for more explanations or the [official docs](https://docs.angr.io/core-concepts/toplevel)
 
 {% highlight python %}
 
