@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Brief introduction to reverse engineering in CTFs using radare2 + angr"
+title:  "Brief introduction to reverse engineering for CTF (using radare2 + angr)"
 ---
 
 ## Intro ##
