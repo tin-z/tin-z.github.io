@@ -1,6 +1,10 @@
 ---
 layout: post
 title:  "Brief introduction to reverse engineering for CTF (using radare2 + angr)"
+categories: [CTF, reverse engineering, r2, angr]
+author: Altin (tin-z)
+
+
 ---
 
 ## Intro ##
