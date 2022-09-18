@@ -18,7 +18,10 @@ author: Altin (tin-z)
 #### Objective ####
   The objective of the series is to accelerate the vulnerability triagging task
   during OSED exams by using binary analysis concepts with Pykd and IDA's IDC
-  language.
+  language. Final materials will be uploaded on
+  [osed-binary-analysis-scripts](https://github.com/tin-z/osed-binary-analysis-scripts)
+  repo.
+
 
 #### Requirements ####
   I will assume you already know how to use Windbg and IDA.
@@ -26,5 +29,14 @@ author: Altin (tin-z)
 
 ### Posts ###
 
- - [OSED preparation with a different study path - part 1: PE file format & Windbg JS API](https://tin-z.github.io/osed/pe/windbg/2022/09/18/osed_1.html)
+1. [PE file format & Windbg JS API](https://tin-z.github.io/osed/pe/windbg/2022/09/18/osed_1.html)
+2. Binary analysis with IDA's IDC language - the abandoned, for good reasons
+3. Introduction to PyKD
+4. IDCzone plugin
+5. Code Tracing with PyKD (part 1)
+6. Code Tracing with PyKD (part 2)
+7. Conclusions
+
+
+
 
