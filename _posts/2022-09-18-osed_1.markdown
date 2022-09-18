@@ -1,0 +1,370 @@
+---
+layout: post
+title:  "OSED preparation with a different study path - part 1: PE file format & Windbg JS API"
+categories: [OSED, PE, Windbg]
+author: Altin (tin-z)
+
+
+---
+
+## Intro ##
+  The following post will introduce PE file format and the Windbg JS API.
+
+### Objective ###
+  At the end of this post you will be able to analyze PE file format from
+  windbg using its JS API.
+
+
+## Start ##
+
+### PE File Format ###
+
+  Portable Executable (PE) file format is the native Win32 file format, which
+  means the code inside is assembly and it would be executed directly by the
+  CPU at some point after the loading process. Under its hat we have other file
+  formats derived from PE, such as DLL, COM and Windows kernel mode drivers.
+
+  As almost any file format, at the beginning of the file we have a header,
+  which in PE is the DOS header. The DOS header structure is defined in the
+  windows.inc or winnt.h files, as shown here below. 
+
+  In particular we are interested in struct members:
+  - `e_magic`: magic number which tells windows the file is an MS-DOS/PE file
+  - `e_lfanew`: file offset where to find the PE header
+
+  Note: The DOS header still exists for retrocompatibility purposes.
+
+```C
+
+// size words: BYTE:1, WORD:2, DWORD:4, QWORD:8
+//
+// the 32 bit DOS header version is shown, the 64 one is pretty the same except
+// sizes are doubled, e.g. DWORD instead of WORD etc.
+
+typedef struct _IMAGE_DOS_HEADER {
+    // WORD  e_magic;      /* 00: MZ Header signature */
+    char e_magic[2] = {'M', 'Z'};
+    WORD  e_cblp;       /* 02: Bytes on last page of file */
+    WORD  e_cp;         /* 04: Pages in file */
+    WORD  e_crlc;       /* 06: Relocations */
+    WORD  e_cparhdr;    /* 08: Size of header in paragraphs */
+    WORD  e_minalloc;   /* 0a: Minimum extra paragraphs needed */
+    WORD  e_maxalloc;   /* 0c: Maximum extra paragraphs needed */
+    WORD  e_ss;         /* 0e: Initial (relative) SS value */
+    WORD  e_sp;         /* 10: Initial SP value */
+    WORD  e_csum;       /* 12: Checksum */
+    WORD  e_ip;         /* 14: Initial IP value */
+    WORD  e_cs;         /* 16: Initial (relative) CS value */
+    WORD  e_lfarlc;     /* 18: File address of relocation table */
+    WORD  e_ovno;       /* 1a: Overlay number */
+    WORD  e_res[4];     /* 1c: Reserved words */
+    WORD  e_oemid;      /* 24: OEM identifier (for e_oeminfo) */
+    WORD  e_oeminfo;    /* 26: OEM information; e_oemid specific */
+    WORD  e_res2[10];   /* 28: Reserved words */
+    DWORD e_lfanew;     /* 3c: Offset to extended header */
+} IMAGE_DOS_HEADER;
+
+```
+
+<p align ="center">
+  <img src="/files/2022-09-18/1.jpg">
+</p>
+
+<br />
+
+  The PE header tells the loader how he want to be loaded in memory before
+  executing its code, is defined as the `IMAGE_NT_HEADERS` and, besides `"PE\0\0"`
+  signature, contains a `IMAGE_FILE_HEADER`/`COFF` struct saved as `FileHeader`,
+  and a `IMAGE_OPTIONAL_HEADER` saved as `OptionalHeader`. These headers use
+  offset and Relative Virtual Address (RVA) addresses. 
+
+  In particular the `ImageBase` field tells to the PE loeader the preferred
+  address where the executable should be mapped in memory. Then RVA was used to
+  tell to the loader on which address to find/map sections, in conjunction with
+  `ImageBase`. So RVA is relative to `ImageBase`. Finally we have the Virtual
+  Address (VA) which is the real virtual address used during program execution.
+  It could be `ImageBase` + RVAs if the PE loader maps PE in memory with the
+  `ImageBase` address. 
+
+  The following attributes are declared somewhere below the
+  PE header's headers:
+ 
+  - NumberOfSections: PE have sections for code, data, etc. Why so? because in
+    general we need different memory permissions, and further because we need
+    to adapt RVAs to the base address which the loader loaded us.
+    Finally we need to load external functions, which is done by the Import
+    Address Table (IAT) structure. And maybe export some of our functions too,
+    which is done by the Export Address Table (EAT) structure.
+
+ - DllCharacteristics: Executable characteristics defined by the compiler. From an
+   exploit developer point of view this is where we find the exploit
+   mitigations on the binary
+
+ - EntryPoint: RVA where program execution should start after being loaded by
+   the PE loeader
+
+ - SizeOfHeaders: The size of all data (the binary) before the sections start
+   (e.g. .text, .data, .rdata)
+
+ - DataDirectory: At the end there is an array of 16 IMAGE_DATA_DIRECTORY
+   structures (e.g. IAT, EAT, debug directories). Each entry does have a RVA
+   field and size refering to the section which they are locating it.
+
+  For more knowledge you can read these articles:
+    - [CBM PE fle format.pdf](https://web.archive.org/web/20220917171344/https://www.fpmurphy.com/public/CBM_1_2_2006_Goppit_PE_Format_Reverse_Engineer_View.pdf)
+    - [wiki.osdev.org/PE](https://wiki.osdev.org/PE)
+    - [Exploring the PE File Format via Imports post](https://malwology.com/2018/10/05/exploring-the-pe-file-format-via-imports/)
+
+
+
+### Windbg JS API ###
+
+  Windbg JS API permits to interact with the debugger using javascript
+  scripting. What it is possible to do depends from us. In general it is
+  possible to interact with windbg internal object rappresentation of the
+  program debugged.
+  
+  First we need to check if the debugger is enabling it, we do that by invoking:
+
+```
+> .scriptproviders
+[...]
+    JavaScript (extension '.js')  <--- we should have this line
+
+// if not, then load it by using this comamnd
+> .load jsprovider.dll
+
+// we can check everything is working like this
+> dx Debugger  
+Debugger
+    Sessions
+    Settings
+    State
+    Utility
+```
+
+<br />
+
+  To load a custom script we use `.scriptload <full-name-script>` which in turn
+  will execute `initializeScript` method defined inside the script. Example:
+
+```js
+function initializeScript()
+{
+      host.diagnostics.debugLog("Hello World\n");
+}
+```
+
+<p align ="center">
+  <img src="/files/2022-09-18/2.jpg">
+</p>
+
+<br />
+
+  After the script is loaded, it is possible to interact with its objects and
+  functions declared by using `dx` command
+  [link](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/javascript-debugger-scripting).
+  Another option is to use `.scriptrun` command which in turn will call
+  the script's `invokeScript` function. Here we can find a collection of windbg
+  JS script done by microsoft
+  [link](https://github.com/Microsoft/WinDbg-Samples).
+
+  Important objects to define in a script:
+
+```
+
+var dout = host.diagnostics.debugLog;
+var dbg = host.namespace.Debugger;
+ 
+// get binaries (modules) loaded by the PE loader
+var modules = dbg.Sessions.First().Processes.First().Modules;
+
+// invoke debugger commands from the script
+var system = host.namespace.Debugger.Utility.Control.ExecuteCommand;
+var rets = system("dd")
+```
+
+<br />
+
+  Usage examples with comments:
+
+```js
+
+// get first module's BaseAddress
+var baddr = modules[0].BaseAddress;
+
+// get e_lfanew field manually
+var e_lfanew = poi(baddr + 0x3c);
+
+
+// get first module's headers
+var hdrs = modules[0].Contents.Headers;
+
+// get file header
+var file_hdr = hdrs.FileHeader;
+
+// get file header manually
+var offset_fileheader = baddr + e_lfanew + 0x4;
+
+// get optional header manually
+var offset_opt_header = baddr + e_lfanew + 0x18;
+
+// get DllCharacteristics field
+var offset_dllchar = offset_opt_header + 0x46;
+var DllCharacteristics = u16(offset_dllchar);
+
+// refs: https://github.com/hugsy/windbg_js_scripts/blob/main/scripts/PageExplorer.js
+function u32(x, k=false){if(!k) return host.memory.readMemoryValues(x, 1, 4)[0];let cmd = `!dd 0x${x.toString(16)}`;let res = system(cmd)[0].split(" ").filter(function(v,i,a){return v.length > 0 && v != "#";});return i64(`0x${res[1].replace("`","")}`);}
+
+```
+
+<br />
+
+**Enumerating binary's exploit mitigations with Windbg JS API**
+
+  Let's write a script to extract `DllCharacteristics` field which is present
+  inside the optional header for each module/binary loaded during a program
+  execution. This flag is used to describe characteristics of the binary, such
+  as binary security mitigations. A full description of the
+  `DllCharacteristics` field can be found on microsoft official documentation
+  [link](https://docs.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-image_optional_header32).
+
+  From an exploit dev point of view, the value interesting would be the following:
+
+- 0020: ASLR with 64 bit address space
+- 0040: The DLL can be relocated at load time
+- 0080: Forced Integrity checking is a policy that ensures a binary that is being loaded is signed prior to loading
+- 0100: The image is compatible with data execution prevention (DEP)
+- 0400: The image does not use structured exception handling (SEH)
+- 1000: Image should execute in an AppContainer
+- 4000: Image supports Control Flow Guard
+
+
+  We can rapresent them on the script as follows:
+
+```js
+
+var dllchars_list = {
+  0x0020 : new DllChars(0x0020, "aslr64", "IMAGE_DLL_CHARACTERISTICS_HIGH_ENTROPY_VA", "ASLR with 64 bit address space.") ,
+  0x0040 : new DllChars(0x0040, "aslr", "IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE", "The DLL can be relocated at load time.") ,
+  0x0080 : new DllChars(0x0080, "signed", "IMAGE_DLLCHARACTERISTICS_FORCE_INTEGRITY", "Forced Integrity checking is a policy that ensures a binary that is being loaded is signed prior to loading.") ,
+  0x0100 : new DllChars(0x0100, "dep", "IMAGE_DLLCHARACTERISTICS_NX_COMPAT", "The image is compatible with data execution prevention (DEP).") ,
+  0x0400 : new DllChars(0x0400, "noseh", "IMAGE_DLLCHARACTERISTICS_NO_SEH", "The image does not use structured exception handling (SEH). No handlers can be called in this image.") ,
+  0x1000 : new DllChars(0x1000, "appcontainer", "IMAGE_DLL_CHARACTERISTICS_APPCONTAINER", "Image should execute in an AppContainer.") ,
+  0x4000 : new DllChars(0x4000, "cfg", "IMAGE_DLL_CHARACTERISTICS_GUARD_CF", "Image supports Control Flow Guard.")
+};
+
+class DllChars {
+  constructor(flg, id, DllCharacteristics, desc){
+    this.flg = flg;
+    this.id = id;
+    this.DllCharacteristics = DllCharacteristics;
+    this.desc = desc;
+  }
+}
+```
+
+<br />
+
+  During the parsing of the field we might want to rapresent each module as a
+  class.
+
+```js
+
+var module_obj = new ModuleWrap(module.Name, module.Contents.Headers.FileHeader.Characteristics, module.Contents.Headers.OptionalHeader.DllCharacteristics);
+
+class ModuleWrap {
+
+  constructor(mod_name, mod_characteristics, mod_dllcharacteristics){
+    this.mod_name = mod_name; 
+    this.mod_characteristics = mod_characteristics; 
+    this.mod_dllcharacteristics = mod_dllcharacteristics;
+    this.dllchars_flgs = {
+      0x0020 : 1, 
+      0x0040 : 1,
+      0x0080 : 1,
+      0x0100 : 1,
+      0x0400 : 1,
+      0x1000 : 1,
+      0x4000 : 1
+    };
+
+    // check security mitigations
+    this.check();
+    this.parsed = false;
+  }
+
+  check() {
+   for(var k in dllchars_list) {
+    this.dllchars_flgs[k] = k & this.mod_dllcharacteristics;
+   } 
+  }
+
+  // Save output also into global array 'missing_dllchars_list'
+  toString() {
+    var str_tmp = "[+] " + this.mod_name + "\n";
+
+    for(var k in dllchars_list) {
+
+      var dllchars_tmp = dllchars_list[k];
+      str_tmp += "  " + dllchars_tmp.id + " : " + ((this.dllchars_flgs[k] ) ? "OK" : "X") + "\n";
+
+      if (! this.dllchars_flgs[k] && ! this.parsed) {
+        missing_dllchars_list[k] += "\n" + "    " + this.mod_name;
+      }
+    } 
+
+    this.parsed = true;
+    return str_tmp;
+  }
+
+}
+
+var missing_dllchars_list = {
+    0x0020 : "", 
+    0x0040 : "",
+    0x0080 : "",
+    0x0100 : "",
+    0x0400 : "",
+    0x1000 : "",
+    0x4000 : ""
+};
+```
+
+<br />
+
+To invoke script we need to define `invokeScript` function
+
+
+```js
+
+function invokeScript()
+{
+  var object = host.namespace.Debugger.Sessions.First().Processes.First().Modules;
+  dout("\n[-] Start..\n");
+
+  for (var module of object)
+  {
+    var module_obj = new ModuleWrap(module.Name, module.Contents.Headers.FileHeader.Characteristics, module.Contents.Headers.OptionalHeader.DllCharacteristics);
+    var str_tmp = module_obj.toString();
+  }
+
+  summary();
+  dout("\n[+] Done!\n");
+}
+
+// print 'missing_dllchars_list' content
+function summary()
+{
+  dout("\n" + "Modules missing mitigations:\n");
+  for(var k in dllchars_list) {
+    dout("\n" + "  NO-" + dllchars_list[k].id + " : " + missing_dllchars_list[k] + "\n");
+  }
+}
+```
+
+<br />
+
+  The final script can be found [here](https://github.com/tin-z/windbg-exploit-helper-scripts/blob/main/scripts/EnumMitigationsMissing.js).
+
+

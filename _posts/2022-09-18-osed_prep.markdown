@@ -1,0 +1,30 @@
+---
+layout: post
+title:  "OSED preparation with a different study path series"
+categories: [OSED]
+author: Altin (tin-z)
+
+
+---
+
+### Intro ###
+  During my OSED exam preparation I have been learning some stuff about WinDbg
+  python/JS API, IDA's IDC language and vague concepts about Windows binary
+  analysis. These arguments are not even required for the OSED exam, besides i
+  have found them helpful in a lot of occasions, especially in daily job needs.
+  I will update this post in order to keep track of the history of this blog
+  series, so keep an eye here sometime.
+
+#### Objective ####
+  The objective of the series is to accelerate the vulnerability triagging task
+  during OSED exams by using binary analysis concepts with Pykd and IDA's IDC
+  language.
+
+#### Requirements ####
+  I will assume you already know how to use Windbg and IDA.
+
+
+### Posts ###
+
+ - [OSED preparation with a different study path - part 1: PE file format & Windbg JS API](https://tin-z.github.io/osed/pe/windbg/2022/09/18/osed_1.html)
+
