@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Strategy - GDBleed - Dynamic-Static binary instrumentation framework on top of GDB</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Strategy";
+        var mkdocs_page_input_path = "strategy/strategy.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <script src="../../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> GDBleed - Dynamic-Static binary instrumentation framework on top of GDB
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../start/">Start</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../settings/readme/">Settings</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../commands/readme/">Commands</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Hooking strategies</span></p>
+              <ul class="current">
+                  <li class="toctree-l1 current"><a class="reference internal current" href="./">Strategy</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#terms">Terms</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#general-ideas">General ideas</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#the-trampoline-points-approaches">The trampoline points approaches</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#cbleed-scripting">.c.bleed "scripting"</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../pre_func/">pre_func</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">GDBleed - Dynamic-Static binary instrumentation framework on top of GDB</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" alt="Docs"></a> &raquo;</li>
+          <li>Hooking strategies &raquo;</li>
+      <li>Strategy</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="strategy">Strategy</h1>
+<p>The following doc illustrates the logic behind <code>hook-got-inline</code> set of commands. Which for now does only hooking and basic instrumentation, but in future it will be true binary instrumentation stuff.</p>
+<h3 id="terms">Terms</h3>
+<p>function-hooked : function to be hooked
+function-hooking : new generated code hooking/instrumenting the function-hooked
+shadow memory : new memory region added from gdbleed</p>
+<h3 id="general-ideas">General ideas</h3>
+<ul>
+<li>
+<p>We map three new region of memory called shadow memory</p>
+<ul>
+<li>text : where new generated assembly code and trampoline points are saved</li>
+<li>data : data</li>
+<li>stack : here we save transitory data (no pthread support)</li>
+</ul>
+</li>
+<li>
+<p>To hook/instrument functions we have only 2 type of function:</p>
+<ul>
+<li>pre_func : observe a function-hooked before executing it</li>
+<li>post_func : observe a function-hooked after executing it</li>
+</ul>
+</li>
+<li>
+<p>pre_func is declared as:</p>
+</li>
+</ul>
+<pre><code># for intel x64
+void * pre_func(void * __arg1__, void * __arg2__, void * __arg3__, void * __arg4__, void * __arg5__, void * __arg6__, unsigned long __fname_length__, char * __fname__, void * __fname_addr__, void * __ret_addr__, unsigned long __num_arg__, void * __sp_arg__);
+
+# for the other archs
+void * pre_func(void * __arg1__, void * __arg2__, void * __arg3__, void * __arg4__, unsigned long __fname_length__, char * __fname__, void * __fname_addr__, void * __ret_addr__, unsigned long __num_arg__, void * __sp_arg__);
+</code></pre>
+<ul>
+<li>post_func is declared as:</li>
+</ul>
+<pre><code># for intel x64
+void * pre_func(void * __arg1__, void * __arg2__, void * __arg3__, void * __arg4__, void * __arg5__, void * __arg6__, void * __rets__, unsigned long __fname_length__, char * __fname__, void * __fname_addr__, void * __ret_addr__, unsigned long __num_arg__, void * __sp_arg__);
+
+# for the other archs
+void * pre_func(void * __arg1__, void * __arg2__, void * __arg3__, void * __arg4__, void * __rets__, unsigned long __fname_length__, char * __fname__, void * __fname_addr__, void * __ret_addr__, unsigned long __num_arg__, void * __sp_arg__);
+</code></pre>
+<ul>
+<li>
+<p>Based on these two functions, gdbleed builds 5 fixed types of trampoline points:</p>
+<ul>
+<li>ONLY_PRE_FUNC : Call pre_func, then jump to function-hooked</li>
+<li>RET_PRE_FUNC : Don't call function-hooked, call pre_func and return its return value</li>
+<li>ONLY_POST_FUNC : Call function-hooked, post_func, then return function-hooked's return value</li>
+<li>RET_POST_FUNC : Call function-hooked, then return post_func return value</li>
+<li>ALL_FUNC : Call pre_func, function-hooked, post_func and then return function-hooked's return value</li>
+</ul>
+</li>
+<li>
+<p>Before calling a trampoline point, the user needs to create its pre_func function, then gdbleed will create an injection point. The injection point is assembly code which will save function-hooked's arguments and stuff into stack shadow-memory, then will call the right trampoline point. Injection points are univoke for each function-hooked. Instead, trampoline points are saved in fixed memory areas.</p>
+<ul>
+<li>The trampoline point will prepare the stack before calling the custom pre_func/function-hooked/post_func function.</li>
+</ul>
+</li>
+</ul>
+<h4 id="the-trampoline-points-approaches">The trampoline points approaches</h4>
+<ul>
+<li><code>ONLY_PRE_FUNC</code> trampoline control flow: </li>
+</ul>
+<pre><code>: caller
+ 0:'&lt;function&gt;'@GOT 
+     \---&gt; 1: Injection-point
+            | 1.1: Prepare stack shadow memory
+            \
+             \---&gt; 2: trampoline_point_&lt;i&gt; with i in [1..5]
+                    | 2.1: save registers
+                    | 2.2: prepare new stack frame and arguments
+                    \
+                     \---&gt; 
+                           3: CALL `pre_func` code 
+                         /
+                    &lt;---/
+                   2: trampoline_point_&lt;i&gt; (2)
+                    | 2.3: restore registers and old stack frame
+                    \
+                     \---&gt; 
+                          4: JMP to `&lt;function&gt;` 
+                         /
+: caller            &lt;---/
+</code></pre>
+<ul>
+<li><code>RET_PRE_FUNC</code> control flow: </li>
+</ul>
+<pre><code>: caller
+ 0:'&lt;function&gt;'@GOT 
+     \---&gt; 1: Injection-point
+            | 1.1: Prepare stack shadow memory
+            \
+             \---&gt; 2: trampoline_point_&lt;i&gt; with i in [1..5]
+                    | 2.1: save registers
+                    | 2.2: prepare new stack frame and arguments
+                    \
+                     \---&gt; 
+                           3: CALL `pre_func` code 
+                         /
+                    &lt;---/
+                   2: trampoline_point_&lt;i&gt; (2)
+                    | 2.3: restore registers and old stack frame
+                    | 2.4: set `pre_func`'s return value
+                    \
+                     \---&gt; 
+                          4: jump to return address
+                         /
+: caller            &lt;---/
+</code></pre>
+<ul>
+<li><code>ONLY_POST_FUNC</code> control flow :</li>
+</ul>
+<pre><code>: caller
+ 0:'&lt;function&gt;'@GOT 
+     \---&gt; 1: Injection-point
+            | 1.1: Prepare stack shadow memory
+            \
+             \---&gt; 2: trampoline_point_&lt;i&gt; with i in [1..5]
+                    | 2.1: save registers
+                    | 2.2: set return address as trampoline_point_&lt;i&gt;(2)
+                    \
+                     \---&gt; 
+                           3: jump &lt;function&gt;
+                         /
+                    &lt;---/
+                   2: trampoline_point_&lt;i&gt; (2)
+                    | 2.3: save &lt;function&gt;'s return value
+                    | 2.4: prepare new stack frame and arguments
+                    \
+                     \---&gt; 
+                          4: CALL `post_func` code
+                         /
+                    &lt;---/
+                   2: trampoline_point_&lt;i&gt; (3)
+                    | 2.5: restore registers and old stack frame
+                    | 2.6: set &lt;function&gt;'s return value
+                    \
+                     \---&gt; 
+                          5: jump to return address
+                         /
+: caller            &lt;---/
+</code></pre>
+<ul>
+<li><code>RET_POST_FUNC</code> control flow :</li>
+</ul>
+<pre><code>: caller
+ 0:'&lt;function&gt;'@GOT 
+     \---&gt; 1: Injection-point
+            | 1.1: Prepare stack shadow memory
+            \
+             \---&gt; 2: trampoline_point_&lt;i&gt; with i in [1..5]
+                    | 2.1: save registers
+                    | 2.2: set return address as trampoline_point_&lt;i&gt;(2)
+                    \
+                     \---&gt; 
+                           3: jump &lt;function&gt;
+                         /
+                    &lt;---/
+                   2: trampoline_point_&lt;i&gt; (2)
+                    | 2.3: save &lt;function&gt;'s return value
+                    | 2.4: prepare new stack frame and arguments
+                    \
+                     \---&gt; 
+                          4: CALL `post_func` code
+                         /
+                    &lt;---/
+                   2: trampoline_point_&lt;i&gt; (3)
+                    | 2.5: restore registers and old stack frame
+                    | 2.6: set `post_func`'s return value
+                    \
+                     \---&gt; 
+                          5: jump to return address
+                         /
+: caller            &lt;---/
+</code></pre>
+<ul>
+<li>
+<p><code>ALL_FUNC</code> control flow:</p>
+<ul>
+<li>Do <code>ONLY_PRE_FUNC</code> and <code>ONLY_POST_FUNC</code> both</li>
+</ul>
+</li>
+</ul>
+<h3 id="cbleed-scripting">.c.bleed "scripting"</h3>
+<p>An user can inject pre_func and post_func functions as .bleed scripts, by invoking the command :</p>
+<pre><code>gef&gt; hook-got-inline --create &lt;path-to-example.c.bleed&gt;
+</code></pre>
+<p>We can't declare variables that will be put on data-type ELF sections, so instead we should keep pre_func and post_func functions as simple as possible. Gdbleed supports a limited type of variable types. To overcome this limitation, before declaring pre_func and post_func, we declare internal functions. We don't link the source code but just compile it in object code. If we need to call a library function we need to declare it in <code>@@external-functions@@</code> sections, then gdbleed will resolve the address and save it into source code before making it into object file.</p>
+<p>For more information read the following doc:
+  * Declaring static data, https://github.com/tin-z/GDBleed/blob/main/example/bleed_example/declare_static_data.c.bleed
+  * Declaring internal functions, https://github.com/tin-z/GDBleed/blob/main/example/bleed_example/internal_func.c.bleed
+  * Declaring pre_func, https://github.com/tin-z/GDBleed/blob/main/example/bleed_example/readme.c.bleed</p>
+<p><strong>Steps during a .c.bleed file parsing</strong></p>
+<ol>
+<li>
+<p>Parse sections, a section does start with <code>--</code></p>
+</li>
+<li>
+<p>Parse <code>--declare--</code> section first. Here we declare variables and functions (externals and locals)</p>
+</li>
+<li><code>@@types@@</code> : define types (TODO, for now declare them using internal functions)</li>
+<li><code>@@vars@@</code> : key-value mapping, for now supporting numerical types, <code>void *</code> and <code>char *</code> also</li>
+<li>
+<p><code>@@external-functions@@</code> : external functions (libc, but not limited to that) which our script depends on</p>
+</li>
+<li>
+<p>Parse <code>--code--</code> section. Here we write down the local functions and the functions pre_func and post_func. Because of some constraints only one type of function would be compiled.</p>
+</li>
+<li><code>@@functions@@</code> : static functions</li>
+<li><code>@@pre_func@@</code> : code executed before calling the hooked function</li>
+<li>
+<p><code>@@post_func@@</code> : code executed after the hooked function returns (#TODO)</p>
+</li>
+<li>
+<p><code>pre_func</code> notes</p>
+</li>
+<li>
+<p>function declaration:</p>
+</li>
+</ol>
+<pre><code>void * pre_func(
+  void * __arg1__, 
+  void * __arg2__, 
+  void * __arg3__, 
+  void * __arg4__, 
+#ifdef IS_x86_64
+  void * __arg5__, 
+  void * __arg6__, 
+#endif
+  unsigned long __fname_length__, 
+  char * __fname__, 
+  void * __fname_addr__, 
+  void * __ret_addr__,
+  unsigned long __num_arg__, 
+  void * __sp_arg__
+);
+</code></pre>
+<ul>
+<li>argument of the hooked function meaning:</li>
+<li><code>__arg1__</code> : 1st arg</li>
+<li><code>__arg2__</code> : 2nd arg</li>
+<li><code>__arg3__</code> : 3rd arg</li>
+<li><code>__arg4__</code> : 4th arg</li>
+<li><code>__arg5__</code> : 5th arg (only available for x86_64 arch) </li>
+<li><code>__arg6__</code> : 6th arg (only available for x86_64 arch)</li>
+<li><code>__fname_length__</code>  : name length of the function-hooked </li>
+<li><code>__fname__</code>         : address of the function-hooked name</li>
+<li><code>__fname_addr__</code>    : address of the function-hooked function</li>
+<li><code>__ret_addr__</code>      : original return address</li>
+<li><code>__num_arg__</code>       : the number of arguments given to the hooked function (TODO)</li>
+<li><code>__sp_arg__</code>        : stack pointer where the other arguments of the hooked function were saved</li>
+<li><code>__rets__</code>          : return value after calling the hooked function (only available in post_func function)</li>
+</ul>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../../commands/readme/" class="btn btn-neutral float-left" title="Commands"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../pre_func/" class="btn btn-neutral float-right" title="pre_func">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../../commands/readme/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../pre_func/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '../..';</script>
+    <script src="../../js/theme_extra.js" defer></script>
+    <script src="../../js/theme.js" defer></script>
+      <script src="../../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="description" content="None" />
+      <link rel="shortcut icon" href="img/favicon.ico" />
+    <title>GDBleed - Dynamic-Static binary instrumentation framework on top of GDB</title>
+    <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Home";
+        var mkdocs_page_input_path = "index.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <script src="js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="." class="icon icon-home"> GDBleed - Dynamic-Static binary instrumentation framework on top of GDB
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href=".">Home</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#why">Why?</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#req">Req</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="start/">Start</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="settings/readme/">Settings</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="commands/readme/">Commands</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Hooking strategies</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="strategy/strategy/">Strategy</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="strategy/pre_func/">pre_func</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href=".">GDBleed - Dynamic-Static binary instrumentation framework on top of GDB</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="." class="icon icon-home" alt="Docs"></a> &raquo;</li>
+      <li>Home</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="gdbleed">GDBleed</h1>
+<p><a href="https://tin-z.github.io/gdbleed/"><img alt="Docs" src="https://img.shields.io/badge/Documentation-blue.svg" /></a> <a href="https://github.com/tin-z/GDBleed/blob/main/LICENSE"><img alt="MIT" src="https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic" /></a></p>
+<p>GDBleed - Dynamic-Static binary instrumentation framework on top of GDB</p>
+<p><code>GDBleed</code> is a gdb wrapper exposing a set of commands for x86-64, ARM and MIPS
+(x86 and ARM thumb-mode in progress) architectures to perform binary
+instrumentation. The objective was to exploit the hackish features of GDB
+python API, while ignoring the software performance attribute (for now). And in
+the end to have a user-friendly framework. GDBleed focus is applicability, then
+we have efficiency. The more CPU archs it does suport the better it is.</p>
+<h3 id="why">Why?</h3>
+<ul>
+<li>
+<p>"easy"-fast minimal static-dynamic code instrumentation supporting all main CPU archs</p>
+</li>
+<li>
+<p>Framework based on tools with a strong community support: GDB, gcc, r2, keystone, LIEF, etc.</p>
+</li>
+<li>
+<p>No control flow information is needed</p>
+</li>
+<li>
+<p>ideal for IoT devices, why?</p>
+<ul>
+<li>
+<p>no binary instrumentation for MIPS</p>
+</li>
+<li>
+<p>cross-compilation is boring (and if it works then it will break somewhere during the execution)</p>
+</li>
+<li>
+<p>A lot of the new IoT devices still using old linux kernel versions not supporting EBPF</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="usage">Usage</h3>
+<ul>
+<li>
+<p>run gdb from the current folder</p>
+</li>
+<li>
+<p>Start the process using <code>start</code> command or attach gdb to the debugged process</p>
+</li>
+<li>
+<p>Run the command </p>
+</li>
+</ul>
+<pre><code>source gdbleed.py
+</code></pre>
+<ul>
+<li>For more info take a look at the <code>tests</code> folder</li>
+</ul>
+<h3 id="req">Req</h3>
+<ul>
+<li>
+<p>Tested on ubuntu 20.04</p>
+</li>
+<li>
+<p>Dep: keystone, LIEF</p>
+</li>
+</ul>
+<h3 id="installation">Installation</h3>
+<ul>
+<li>Install </li>
+</ul>
+<pre><code># GEF gdb extension, ref https://github.com/hugsy/gef
+sudo apt-get -y install unzip cmake binutils
+</code></pre>
+<ul>
+<li>Declare env vars</li>
+</ul>
+<pre><code># python's version which your gdb intalled supports
+export PYTHON_VER=&quot;python3&quot;
+sudo apt-get install ${PYTHON_VER}-distutils ${PYTHON_VER}-setuptools
+
+# don't change these values
+export KEYSTONE_VER=&quot;0.9.2&quot;
+export LIEF_VER=&quot;0.12.1&quot;
+</code></pre>
+<ul>
+<li>From current folder run:</li>
+</ul>
+<pre><code>./setup.sh
+
+</code></pre>
+<p><strong>Required for hooking/instrumentation also aka Inline GOT hooking</strong></p>
+<ul>
+<li>Install</li>
+</ul>
+<pre><code class="language-sh">
+export TARGET=arm-linux-gnueabi
+sudo apt-get install -y binutils-${TARGET} gcc-${TARGET}
+
+export TARGET=mips-linux-gnu
+sudo apt-get install -y binutils-${TARGET} gcc-${TARGET}
+</code></pre>
+<ul>
+<li>add vim highlighting</li>
+</ul>
+<pre><code class="language-vim">augroup filetypedetect
+  au! BufRead,BufNewFile *.c.bleed setfiletype c
+augroup END
+</code></pre>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="start/" class="btn btn-neutral float-right" title="Start">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+      <span><a href="start/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '.';</script>
+    <script src="js/theme_extra.js" defer></script>
+    <script src="js/theme.js" defer></script>
+      <script src="search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>
+
+<!--
+MkDocs version : 1.4.0
+Build Date UTC : 2022-10-08 17:37:41.935282+00:00
+-->

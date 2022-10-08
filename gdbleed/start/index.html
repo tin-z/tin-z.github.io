@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Start - GDBleed - Dynamic-Static binary instrumentation framework on top of GDB</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Start";
+        var mkdocs_page_input_path = "start.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <script src="../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> GDBleed - Dynamic-Static binary instrumentation framework on top of GDB
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="./">Start</a>
+    <ul class="current">
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../settings/readme/">Settings</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../commands/readme/">Commands</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Hooking strategies</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../strategy/strategy/">Strategy</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../strategy/pre_func/">pre_func</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">GDBleed - Dynamic-Static binary instrumentation framework on top of GDB</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" alt="Docs"></a> &raquo;</li>
+      <li>Start</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="start-guide">start guide</h1>
+<ul>
+<li>
+<p><a href="./">video</a></p>
+</li>
+<li>
+<p>Delete old gdbleed session which is saved into folder <code>/tmp/gdbleed</code></p>
+</li>
+</ul>
+<pre><code>rm -rf /tmp/gdbleed
+</code></pre>
+<ol>
+<li>Attach gdb to gdbserver session</li>
+</ol>
+<pre><code># e.g. we have /bin/bash with pid 258475, then we launch gdbserver as follows
+gdbserver --attach 127.0.0.1:12345 258475
+
+# on gdb session
+cd &lt;gdbleed-folder&gt;
+gdb /bin/bash -ex &quot;source ~/.gdbinit-gef.py&quot; -ex &quot;target remote 127.0.0.1:12345&quot; -ex &quot;source gdbleed.py&quot;
+
+</code></pre>
+<ol>
+<li>Because gdbleed does not know if the debuggee program is running in local or in remote it will ask you to choose on which path the binary is present. In any case if we are using gdbserver the 2nd options should be choosed. This information is later saved in gdbleed session (folder <code>/tmp/gdbleed</code>)</li>
+</ol>
+<p><img alt="t1.jpg" src="../img/start/t1.jpg" /></p>
+<ol>
+<li>Inspect got entries </li>
+</ol>
+<pre><code>gef➤  got-entries
+...
+[0x563275d6ced8] ---&gt; socket
+[0x563275d6cee0] ---&gt; mktemp
+
+gef➤  got-entries fork
+[0x563275d6ce90] ---&gt; fork
+</code></pre>
+<ol>
+<li>Create static variables</li>
+</ol>
+<pre><code>gef➤  hook-got-inline --help
+Help
+Usage: hook-got-inline [options] &lt;function_name&gt;
+
+   Options:
+       --help              : This message
+       --create            : insert gdbleed script from STDIN or by file &lt;file_path&gt;
+       --data              : Define or list global/static vars
+       --list              : print declared functions nformation
+       --source-code       : print function's source code
+       --remove            : delete function &lt;function_name&gt;
+       --compile           : Compile function
+       --inject            : inject mode
+       --inject-ret        : inject-ret mode
+       --inject-post       : inject-post mode
+       --inject-post-ret   : inject-post-ret mode
+       --inject-full       : inject-full mode
+
+ Notes:
+   --inject                : call pre_func, jump to function-hooked
+   --inject-ret            : jump directly to pre_func and return its return value
+   --inject-post           : call function-hooked, post_func, then return function-hooked's return values
+   --inject-post-ret       : call function-hooked, post_func and return ist return value
+   --inject-full           : call pre_func, function-hooked, post_func, then return function-hooked's return value
+
+</code></pre>
+<pre><code>gef➤  hook-got-inline --data --create
+Insert gdbleed script (Insert 'EOF' line to terminate reading input)
+int x = 10;
+char * pino = &quot;Hello pino\n&quot;;
+blob data1 = 128;
+EOF
+
+gef➤  hook-got-inline --data --list
+Id              declaration
+0               int x = 10;
+1               char * pino = 0x25001f; // size=0xd
+2               void * data1 = 0x25002b; // size=0x80
+
+</code></pre>
+<ol>
+<li>Create internal functions</li>
+</ol>
+<pre><code>gef➤  hook-got-inline --create ./example/bleed_example/internal_func.c.bleed
+/tmp/gdbleed/inspect_status.print_pino.c: In function ‘print_pino’:
+
+[...]
+
+Code compiled or maybe not, you should check that and change stuff (folder '/tmp/gdbleed/inspect_status.print_pino.c.o').
+Do you want to retry compilation? (y/Y/-)
+
+
+/tmp/gdbleed/inspect_status.call_print_pino.c: In function ‘call_print_pino’:
+
+[...]
+
+Code compiled or maybe not, you should check that and change stuff (folder '/tmp/gdbleed/inspect_status.call_print_pino.c.o').
+Do you want to retry compilation? (y/Y/-)
+
+gef➤  hook-got-inline --list
+Id     namespace         full_name                         addr
+0x0    inspect_status    inspect_status.call_print_pino    0x20018e
+0x1    inspect_status    inspect_status.print_pino         0x2000ed
+
+</code></pre>
+<ul>
+<li>print inspect_status.call_print_pino's details</li>
+</ul>
+<pre><code>gef➤  hook-got-inline --list inspect_status.call_print_pino
+Id     namespace         full_name                         addr
+0x0    inspect_status    inspect_status.call_print_pino    0x20018e
+ \---&gt; description:
+Inspect arguments given to the hooking functions 'pre_func' and 'post_func'
+
+ \---&gt; declaration:
+int call_print_pino(int j){
+
+ \---&gt; used_by_function:
+[]
+
+ \---&gt; hooking_function:
+{'inspect_status.print_pino'}
+</code></pre>
+<pre><code>gef➤  hook-got-inline --source-code inspect_status.call_print_pino
+'inspect_status.call_print_pino' source code:
+
+// here we insert includes and struct typedf etc.
+//  - we can have only one &quot;define&quot; sub-section
+#include &lt;sys/types.h&gt;
+#include &lt;unistd.h&gt;
+
+
+int call_print_pino(int j){
+void * (*getpid)() = 0x7ffff7e640f0;
+void * (*printf)(void *, ...) = 0x7ffff7de1cc0;
+int * (*print_pino) (int i) = 0x2000ed;
+char * p = 0x2500ab; // size=0x17
+char * p2 = 0x2500c1; // size=0xa
+char * pino = 0x25001f; // size=0xd
+// ## code starts from here:
+
+  return print_pino(j);
+}
+
+</code></pre>
+<ol>
+<li>Create pre_func which does call static variables and internal functions declared before</li>
+</ol>
+<pre><code>gef➤  hook-got-inline --create ./example/bleed_example/inspect_status[x86_64].c.bleed
+gef➤  hook-got-inline --list
+Id     namespace         full_name                         addr
+0x0    inspect_status    inspect_status.call_print_pino    0x20018e
+0x1    inspect_status    inspect_status.print_pino         0x2000ed
+0x2    inspect_status    inspect_status.pre_func           None
+
+
+gef➤  hook-got-inline --source-code inspect_status.pre_func
+'inspect_status.pre_func' source code:
+void * pre_func(void * __arg1__, void * __arg2__, void * __arg3__, void * __arg4__, void * __arg5__, void * __arg6__, unsigned long __fname_length__, char * __fname__, void * __fname_addr__, void * __ret_addr__, unsigned long __num_arg__, void * __sp_arg__){
+void * (*printf)(void *, ...) = 0x7ffff7de1cc0;
+int * (*call_print_pino) (int j) = 0x20018e;
+char * p = 0x2500ca; // size=0xc1
+char * pino = 0x25001f; // size=0xd
+  int i = 0x1337;
+// ## code starts from here:
+  printf(p, __fname__, __arg1__, __arg2__, __arg3__, __arg4__, __arg5__, __arg6__, __fname_length__, __fname__, __fname_addr__, __ret_addr__, __num_arg__, __sp_arg__);
+  printf(pino);
+  call_print_pino(i);
+  return 1111;
+return 0;
+}
+
+</code></pre>
+<ol>
+<li>Compile it and then hook 'fork' calls</li>
+</ol>
+<pre><code>gef➤  hook-got-inline --compile inspect_status.pre_func
+/tmp/gdbleed/inspect_status.pre_func.c: In function ‘pre_func’:
+
+[...]
+
+Code compiled or maybe not, you should check that and change stuff (folder '/tmp/gdbleed/inspect_status.pre_func.c.o').
+Do you want to retry compilation? (y/Y/-)
+
+gef➤  hook-got-inline --inject inspect_status.pre_func fork
+[TraceHook] Can't find symbol on '.dynstr', is imported by ordinale number.. searching it on LIBC memory space
+[TraceHook] Can't find symbol 'fork' on libc, inserting it by hand at addr '0x25018a'
+
+gef➤  continue
+</code></pre>
+<p>Result:</p>
+<p><img alt="t2.jpg" src="../img/start/t2.jpg" /></p>
+<ol>
+<li>Trace each external call passing from plt.got section</li>
+</ol>
+<pre><code>gef➤  hook-got-inline --inject --trace-all inspect_status.pre_func
+
+</code></pre>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href=".." class="btn btn-neutral float-left" title="Home"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../settings/readme/" class="btn btn-neutral float-right" title="Settings">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href=".." style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../settings/readme/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '..';</script>
+    <script src="../js/theme_extra.js" defer></script>
+    <script src="../js/theme.js" defer></script>
+      <script src="../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

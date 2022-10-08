@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Commands - GDBleed - Dynamic-Static binary instrumentation framework on top of GDB</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Commands";
+        var mkdocs_page_input_path = "commands/readme.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <script src="../../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> GDBleed - Dynamic-Static binary instrumentation framework on top of GDB
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../start/">Start</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../settings/readme/">Settings</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="./">Commands</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#runtime-information-gathering-commands">Runtime information gathering commands</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#hook-got-entries-using-breakpoints">Hook GOT entries using breakpoints</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#hookinstrument-got-entries-using-trampoline-points">Hook/instrument GOT entries using trampoline points</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#memory-management">Memory management</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#save-session-todo">Save session (#TODO)</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Hooking strategies</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../strategy/strategy/">Strategy</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../strategy/pre_func/">pre_func</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">GDBleed - Dynamic-Static binary instrumentation framework on top of GDB</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" alt="Docs"></a> &raquo;</li>
+      <li>Commands</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="commands-list">Commands list</h1>
+<h3 id="runtime-information-gathering-commands">Runtime information gathering commands</h3>
+<p><code>got-entries [symbol]</code> : print all GOT entries or only the [symbol] entry</p>
+<p><code>base-address</code> : print process base address</p>
+<p><code>binary-name</code> : file path of the process</p>
+<p><code>binary-name-local</code> : local file path of the binary </p>
+<hr />
+<h3 id="hook-got-entries-using-breakpoints">Hook GOT entries using breakpoints</h3>
+<p><code>trace-bp --symbol fork</code> : trace fork calls and print function args using breakpoints</p>
+<p><code>trace-bp --trace-all</code> : trace @plt calls and print function args using breakpoints</p>
+<p><code>trace-bp --reset</code> : remove breakpoints that was setted with trace-bp</p>
+<hr />
+<h3 id="hookinstrument-got-entries-using-trampoline-points">Hook/instrument GOT entries using trampoline points</h3>
+<p><code>hook-got</code> : old method used for doing GOT hooking, the command will be deprecated soon for now just use it for clearing GOT entries as <code>hook-got --reset-all</code></p>
+<p><code>hook-got-inline</code> : read other docs</p>
+<hr />
+<h3 id="memory-management">Memory management</h3>
+<p><code>hook-memory_mng</code> : manage shadow memory</p>
+<p><code>dump-all</code> : dump process memory and save it to <code>&lt;tmp_folder&gt;/dump_dir</code> folder</p>
+<p><code>mem-map</code> : allocate memory using mmap, then malloc if mmap call failed</p>
+<p><code>mem-unmap</code> : unallocate memory</p>
+<hr />
+<h3 id="save-session-todo">Save session (#TODO)</h3>
+<p><code>store-state</code> : use serialization for saving current gdbleed session to <code>&lt;tmp_folder&gt;/state.bin</code></p>
+<p><code>load-state</code> : load previous gdbleed session saved</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../../settings/readme/" class="btn btn-neutral float-left" title="Settings"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../../strategy/strategy/" class="btn btn-neutral float-right" title="Strategy">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../../settings/readme/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../../strategy/strategy/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '../..';</script>
+    <script src="../../js/theme_extra.js" defer></script>
+    <script src="../../js/theme.js" defer></script>
+      <script src="../../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>
