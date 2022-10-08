@@ -102,9 +102,11 @@
                 <h1 id="strategy">Strategy</h1>
 <p>The following doc illustrates the logic behind <code>hook-got-inline</code> set of commands. Which for now does only hooking and basic instrumentation, but in future it will be true binary instrumentation stuff.</p>
 <h3 id="terms">Terms</h3>
-<p>function-hooked : function to be hooked
-function-hooking : new generated code hooking/instrumenting the function-hooked
-shadow memory : new memory region added from gdbleed</p>
+<ul>
+<li>function-hooked : function to be hooked</li>
+<li>function-hooking : new generated code hooking/instrumenting the function-hooked</li>
+<li>shadow memory : new memory region added from gdbleed</li>
+</ul>
 <h3 id="general-ideas">General ideas</h3>
 <ul>
 <li>
@@ -288,10 +290,18 @@ void * pre_func(void * __arg1__, void * __arg2__, void * __arg3__, void * __arg4
 <pre><code>gef&gt; hook-got-inline --create &lt;path-to-example.c.bleed&gt;
 </code></pre>
 <p>We can't declare variables that will be put on data-type ELF sections, so instead we should keep pre_func and post_func functions as simple as possible. Gdbleed supports a limited type of variable types. To overcome this limitation, before declaring pre_func and post_func, we declare internal functions. We don't link the source code but just compile it in object code. If we need to call a library function we need to declare it in <code>@@external-functions@@</code> sections, then gdbleed will resolve the address and save it into source code before making it into object file.</p>
-<p>For more information read the following doc:
-  * Declaring static data, https://github.com/tin-z/GDBleed/blob/main/example/bleed_example/declare_static_data.c.bleed
-  * Declaring internal functions, https://github.com/tin-z/GDBleed/blob/main/example/bleed_example/internal_func.c.bleed
-  * Declaring pre_func, https://github.com/tin-z/GDBleed/blob/main/example/bleed_example/readme.c.bleed</p>
+<p>For more information read the following doc:</p>
+<ul>
+<li>
+<p><a href="https://github.com/tin-z/GDBleed/blob/main/example/bleed_example/declare_static_data.c.bleed">Declaring static data</a></p>
+</li>
+<li>
+<p><a href="https://github.com/tin-z/GDBleed/blob/main/example/bleed_example/internal_func.c.bleed">Declaring internal functions</a></p>
+</li>
+<li>
+<p><a href="https://github.com/tin-z/GDBleed/blob/main/example/bleed_example/readme.c.bleed">Declaring pre_func</a></p>
+</li>
+</ul>
 <p><strong>Steps during a .c.bleed file parsing</strong></p>
 <ol>
 <li>
@@ -300,16 +310,24 @@ void * pre_func(void * __arg1__, void * __arg2__, void * __arg3__, void * __arg4
 <li>
 <p>Parse <code>--declare--</code> section first. Here we declare variables and functions (externals and locals)</p>
 </li>
-<li><code>@@types@@</code> : define types (TODO, for now declare them using internal functions)</li>
-<li><code>@@vars@@</code> : key-value mapping, for now supporting numerical types, <code>void *</code> and <code>char *</code> also</li>
+<li>
+<p><code>@@types@@</code> : define types (TODO, for now declare them using internal functions)</p>
+</li>
+<li>
+<p><code>@@vars@@</code> : key-value mapping, for now supporting numerical types, <code>void *</code> and <code>char *</code> also</p>
+</li>
 <li>
 <p><code>@@external-functions@@</code> : external functions (libc, but not limited to that) which our script depends on</p>
 </li>
 <li>
 <p>Parse <code>--code--</code> section. Here we write down the local functions and the functions pre_func and post_func. Because of some constraints only one type of function would be compiled.</p>
 </li>
-<li><code>@@functions@@</code> : static functions</li>
-<li><code>@@pre_func@@</code> : code executed before calling the hooked function</li>
+<li>
+<p><code>@@functions@@</code> : static functions</p>
+</li>
+<li>
+<p><code>@@pre_func@@</code> : code executed before calling the hooked function</p>
+</li>
 <li>
 <p><code>@@post_func@@</code> : code executed after the hooked function returns (#TODO)</p>
 </li>
@@ -338,7 +356,9 @@ void * pre_func(void * __arg1__, void * __arg2__, void * __arg3__, void * __arg4
 );
 </code></pre>
 <ul>
-<li>argument of the hooked function meaning:</li>
+<li>
+<p>argument of the hooked function meaning:</p>
+<ul>
 <li><code>__arg1__</code> : 1st arg</li>
 <li><code>__arg2__</code> : 2nd arg</li>
 <li><code>__arg3__</code> : 3rd arg</li>
@@ -352,6 +372,8 @@ void * pre_func(void * __arg1__, void * __arg2__, void * __arg3__, void * __arg4
 <li><code>__num_arg__</code>       : the number of arguments given to the hooked function (TODO)</li>
 <li><code>__sp_arg__</code>        : stack pointer where the other arguments of the hooked function were saved</li>
 <li><code>__rets__</code>          : return value after calling the hooked function (only available in post_func function)</li>
+</ul>
+</li>
 </ul>
               
             </div>
