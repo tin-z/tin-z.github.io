@@ -6,4 +6,4 @@ layout: home
 title: Home
 ---
 
-About me: #TODO
+About me: Freelance security researcher
