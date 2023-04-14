@@ -696,3 +696,5 @@ grep -r "test" | grep reader
 cat CVE-2023-24534_36.txt  | less
 ```
 
+Script files can be downloaded here: [link](https://github.com/tin-z/Stuff_and_POCs/tree/main/etc/lost_chatgpt_memory_files)
+
