@@ -6,4 +6,4 @@ layout: home
 title: Home
 ---
 
-About me: Freelance security researcher
+About me: Independent Security Researcher

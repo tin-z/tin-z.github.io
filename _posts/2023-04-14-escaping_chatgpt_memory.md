@@ -83,11 +83,11 @@ call this `collapse-scan` request), the solutions that i thought could be used
 are the following:
 
  - `multiple-scan` : Send an initial prompt describing the task and instructing chatGPT to not recognize the next requests as questions but as content's files. Then the end read-file string is sent
-    * pro: elegant solution
+    * pros: elegant solution
     * cons: After 2-3 files sent then the short-memory issue comes in. What about content's files with more than 4096 tokens? solution is multi-part file upload, but still short-memory issue is there
 
  - `single-scan` : send a request per file, each request is composed of the prompt and the content's file
-    * pro: even if a 2-3 multi-part file is sent the short-memory issue would be somehow limited
+    * pros: even if a 2-3 multi-part file is sent the short-memory issue would be somehow limited
     * cons: we are not seeing the problem globally and so the solution might be wrong or incomplete or maybe a local solution
 
 
