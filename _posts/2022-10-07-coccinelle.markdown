@@ -8,42 +8,44 @@ author: Altin (tin-z)
 ---
 
 ## Intro ##
- In this post i will introduce brief concepts regarding variant analysis and
- coccinelle. Then i will show how i was able to perform such analyses on real
- case scenarios.
+In this post i will introduce brief concepts regarding variant analysis and
+coccinelle. Then i will show how i was able to perform such analyses on real
+case scenarios.
 
- - The objective was to perform code pattern and find similar vuln to the [https://hackerone.com/reports/1350653](https://hackerone.com/reports/1350653) one, which is a heap overflow
+- The objective was to perform code pattern and find similar vuln to the [https://hackerone.com/reports/1350653](https://hackerone.com/reports/1350653) one, which is a heap overflow
 
-    * ps4/5 kernel is based on netbsd 9
+   * ps4/5 kernel is based on netbsd 9
 
 ---
 
 ## Some knowledge ##
 
 ### Variant analysis ###
- Variant analysis is a technique for code analysis which we can use to find
- vulnerabilities inside our source code. The tool behind makes a set of graph
- representation structure out of the source code. Then users could query those
- graphs and find common code pattern associating to it common class of
- vulnerabilities. Finally we match those set of rules with our future source
- code projects and make "profits".
+Variant analysis is a technique for code analysis which we can use to find
+vulnerabilities inside our source code. The tool behind makes a set of graph
+representation structure out of the source code. Then users could query those
+graphs and find common code pattern associating to it common class of
+vulnerabilities. Finally we match those set of rules with our future source
+code projects and make "profits".
 
- So in variant analysis a code pattern is abstracted using a logical
- representation of the code, then we use that to match other source code with
- the same property.
+In variant analysis, a code pattern is abstracted using a logical
+representation of the code. We can then use this representation to identify
+similar code patterns in other source code.
 
 
 ### Coccinelle ###
 
- Coccinelle is a source code analysis tool having in mind *Unix kernel source
- codes. The syntax is not complex, the graphs representations as well.
- Coccinelle was not only meant for code analysis, and so variant analysis, but
- also for automating program patching by using the patch notation.
+Coccinelle is a source code analysis tool having in mind *Unix kernel source
+codes. Its syntax is simple, and it uses graph representations to analyze the
+code. In addition to code and variant analysis, Coccinelle can automate
+program patching by using the patch notation. In summary, Coccinelle is a
+versatile tool that can help with source code analysis and patching.
 
- Semantic patch language (SmPL) is the language used by coccinelle to query the source code.
-  * A rule does start with the notation `@@` or `@<name-rule>@`
-  * Inside `@@` notation we have metavariables
-  * Following that there's the code pattern matching
+
+Semantic patch language (SmPL) is the language used by coccinelle to query the source code.
+ * A rule does start with the notation `@@` or `@<name-rule>@`
+ * Inside `@@` notation we have metavariables
+ * Following that there's the code pattern matching
 
 ```smpl
 
@@ -70,21 +72,21 @@ position p1;
 + T * e2 = well_known_function(...);
 ```
 
- Inside the code pattern matching we declare the rule as follow :
+Inside the code pattern matching we declare the rule as follow :
 
-  * `-` match and remove this line
-  * `+` match the rule above and add this line after
-  * `*` if the code is matched print this line to stdout
-  * `(` if the line starts with `(` and in the line below we have the operator or `|`, then we are saying to coccinelle to match any of the following line in or mode
-  * `...` whatever there's after the code matched above. This notation can also be used inside a function which we are not interested in the arguments
-  * `?` when we have '?' at the begining of the line, it means the matching is optional
-  * `<... ...>` to define a block over what can be matched and modified more than once.
+ * `-` match and remove this line
+ * `+` match the rule above and add this line after
+ * `*` if the code is matched print this line to stdout
+ * `(` if the line starts with `(` and in the line below we have the operator or `|`, then we are saying to coccinelle to match any of the following line in or mode
+ * `...` whatever there's after the code matched above. This notation can also be used inside a function which we are not interested in the arguments
+ * `?` when we have '?' at the begining of the line, it means the matching is optional
+ * `<... ...>` to define a block over what can be matched and modified more than once.
 
 <br />
 
 **Example 1**
 
- Find function calling kzalloc inside a single file, or directory with the `--dir` parameter
+Find function calling kzalloc inside a single file, or directory with the `--dir` parameter
 
 ```
 // comment
@@ -105,7 +107,7 @@ expression arg1, arg2;
 
 **Example 2**
 
- Find kzalloc calls, and print output the python interface.
+Find kzalloc calls, and print output the python interface.
 
 ```
 // comment
@@ -148,11 +150,14 @@ print("kzalloc on line: {}".format(l1))
 
 <br />
 
-**Final coccinelle tips**
+**Final tips for working with Coccinelle:**
 
- - Start simple, with a semantic patch matching common cases.
- - Incremental development, restrict semantic patch to reduce results, and so FP cases
- - Instead of doing a single complex rule, split it on multiple ones to have better results and scripts
+ - Start with simple semantic patches that match common cases.
+ - Develop incrementally by restricting the semantic patch to reduce false positives.
+ - Instead of creating a single complex rule, split it into multiple rules to improve accuracy and scripting.
+
+By following these tips, you can improve the effectiveness and efficiency of your Coccinelle analyses.
+
 
 ---
 
@@ -170,11 +175,12 @@ print("kzalloc on line: {}".format(l1))
 <br />
 
 
- - The vulnerability is caused by not checking the size of user input before copying it to a "mbuffer" struct
+ - The vulnerability in the code is caused by a failure to check the size of user input before copying it to a "mbuffer" struct.
 
- - The mbuffer was returned from the call to `MCLGET` which returns a mbuff with fixed size of `MCLBYTES` bytes number
+ - The "mbuffer" is returned from the call to MCLGET, which returns a fixed-sized "mbuff" with a size of MCLBYTES bytes.
 
- - By comparing the source code before and after the patch being applied we noted that was added the compare
+ - After applying the patch, we compared the source code before and after and noted that a compare statement was added.
+
 
 ```
 ...
@@ -185,10 +191,12 @@ print("kzalloc on line: {}".format(l1))
   <copy from user-controlled-input>
 ```
 
- So what we want to do is finding `MCLGET` calls without the length comparison before.
+Our goal is to identify all MCLGET calls in the code that lack a length
+comparison. To achieve this, we need to write a rule that matches each MCLGET
+call and saves its position. By identifying these calls, we can then ensure
+that the length comparison is added to prevent vulnerabilities caused by
+copying user input to a fixed-size buffer. We do it like so
 
-
- Write a rule matching each MCLGET call and save the position
 
 ```
 @r1@
@@ -197,9 +205,8 @@ position p1;
 MCLGET@p1(...)
 ```
 
- Match the patched scenario
-
-    * note, if we do not insert the 'exists' flag after the rule name, then it will match only the exact code patterns
+After identifying the MCLGET calls, we need to match the patched scenario
+ - Note: `exists` flag is inserted after the rule name to instruct coccinelle to match only the exact code patterns
 
 ```
 @r2 exists@

@@ -9,7 +9,12 @@ author: Altin (tin-z)
 
 ## Intro
 
-The following blog describes some technical aspects of the python memory allocator (pymalloc) which i was looking while making a challenge for a ctf, that is [pwnable 400](https://ctftime.org/task/17783) for the Reply Cyber Security Challenge 2021. The notes will then show a double-free memory error on pymalloc, how to replicate the attack and why that was so extremely easy.
+In this blog, I'll describe some technical aspects of the Python memory
+allocator (pymalloc) that I explored while creating a challenge for the Reply
+Cyber Security Challenge 2021 ([pwnable 400](https://ctftime.org/task/17783)).
+The notes will demonstrate a double-free memory error in pymalloc, explain how
+to reproduce the attack, and discuss why it was so remarkably easy to exploit.
+
 
 <p align ="center">
   <img src="/files/2023-02-18/1.jpg">
@@ -110,10 +115,10 @@ struct arena_object {
 };
 ```
 
-So to sum up here: 
- - Pymalloc does manage/view the memory as "arena_i -> pool_j -> block_k"
- - Blocks have fixed size and so even after free they cannot shrink and/or merge with other blocks
- - Pool occupies 4KB, on top of the structure we have the metadata managing the rest of its body which is splitted in blocks each of the same size
+So, to sum up: 
+ - Pymalloc manages and views memory as "arena_i -> pool_j -> block_k"
+ - Blocks have a fixed size and cannot shrink or merge with other blocks, even after they have been freed.
+ - Each pool occupies 4KB, with metadata at the top managing the rest of its body, which is split into blocks of the same size.
  - Arena have 64 pools indexed by their block size class (szidx), and so `arena->pool_address[szidx]` will contain blocks of `8+(8*szidx)` size
 
 <br />
@@ -399,10 +404,11 @@ Link to PoCs: [https://github.com/tin-z/Stuff_and_POCs/tree/main/etc/pymalloc_no
 ## Summary
 
 Lessons learned:
- - python has different types of memory allocators, one of them is pymalloc (<512byte python objects)
- - pymalloc does manage/view the memory as "arena_i -> pool_j -> block_k"
- - pymalloc does not have heap memory mitigations, except on the address freed which must be in pool addresses range
- - python embedded C/C++ module should take care to pymalloc for the motive described above
+ - Python has various memory allocators, including pymalloc, which handles Python objects smaller than 512 bytes.
+ - pymalloc organizes memory into a hierarchy of "arena_i -> pool_j -> block_k".
+ - pymalloc lacks heap memory mitigations, except that freed addresses must be within the range of pool addresses.
+ - When developing C/C++ modules embedded in Python, it's important to be mindful of pymalloc and its limitations.
+
 
 See, it wasn't that hard xD
 

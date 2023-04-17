@@ -158,7 +158,10 @@ python downloader.py -g https://github.com/golang/go --cve CVE-2023-24534 --pre 
 
 <br />
 
-Now we have saved on `output` folder the diff files, but we can't send them like it so to ChatGPT, we need to craft a prompt. In single-scan mode, we'll send a question per diff file as follows:
+We have successfully saved the diff files to the `output` folder. However, we
+cannot send them directly to ChatGPT. Instead, we need to craft a prompt to ask
+questions about each diff file in single-scan mode. To do this, we will send a
+separate question for each diff file, as follows:
 
 ```
 <prompt-model>
@@ -198,7 +201,7 @@ cat output/CVE-2023-24534_00.txt
 
 <br />
 
-Now for each output we need to copy it on chatgpt, to do it faster i made this bash:
+Next, we will copy each output to ChatGPT. To speed up this process, I have created a Bash script:
 
 ```
 # install xclip, this alias will copy the input given to your clipboard
@@ -213,7 +216,10 @@ done
 
 ```
 
-And mamma mia so far it works. For non-related code we get this kind of responses, with the first image describing a non-related test file, and the second simply another non-related component.
+And mamma mia so far it works. When we test non-related code, we receive
+responses like the ones shown in the images below. The first image shows a
+non-related test file, while the second image shows another non-related
+component.
 
 <p align ="center">
   <img src="/files/2023-04-14/t5.jpg">
@@ -225,7 +231,10 @@ And mamma mia so far it works. For non-related code we get this kind of response
 
 <br />
 
-But nothing is perfect, and as we noted before what happens if the file's content is greater than 4096 tokens? Of course we reduced somehow the domain space, and instead of uploading a raw file, now we're just uploading a diff file. But still there are diff files larger than that. If so chatgpt does reply with this message.
+However, nothing is perfect. As we noted earlier, what happens if the file's
+content exceeds 4096 tokens? Although we have reduced the domain space by
+uploading only the diff files, some of them are still larger than 4096 tokens.
+In this case, ChatGPT replies with the following message:
 
 <p align ="center">
   <img src="/files/2023-04-14/t7.jpg">
@@ -233,7 +242,12 @@ But nothing is perfect, and as we noted before what happens if the file's conten
 
 <br />
 
-As discussed before, if the file is too big we can send it in a multi-part file format. Then we can use the `single-scan` mode, and so sending each time the prompt instruction and a piece of a new diff file. But, if we follow this solution we would end up with the following problem: Because the file is too big, then where do we split on it? simply we split the diff file by functions, and we send them to chatgpt in pieces.
+As discussed earlier, if the file is too big to send in a single message, we
+can send it in a multi-part file format. Then we can use the `single-scan`
+mode, and so sending each time the prompt instruction and a piece of a new diff
+file. But, if we follow this solution we would end up with the following
+problem: Because the file is too big, then where do we split on it? simply we
+split the diff file by functions, and we send them to chatgpt in pieces.
 
 ```
      1  diff --git a/src/cmd/compile/internal/ssa/rewriteARM64.go b/src/cmd/compile/internal/ssa/rewriteARM64.go
@@ -415,7 +429,7 @@ python downloader_with_tokens_singlescan.py -g https://github.com/golang/go --cv
 
 ```
 
-**multisingle-scan multi-part request 2:**
+**single-scan multi-part request 2:**
 <p align ="center">
   <img src="/files/2023-04-14/t13.jpg">
 </p>
